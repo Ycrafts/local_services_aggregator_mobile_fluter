@@ -20,13 +20,23 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     print('Parsing user JSON: $json'); // Debug log
     
+    // Debug log for each field
+    print('name: ${json['name']}');
+    print('email: ${json['email']}');
+    print('phone_number: ${json['phone_number']}');
+    print('address: ${json['address']}');
+    print('profile_image: ${json['profile_image']}');
+    print('user_type: ${json['user_type']}');
+    
+    // Handle null values with defaults
     return User(
-      name: json['name'] as String,
-      email: json['email'] as String,
-      phone: json['phone'] as String?,
-      address: json['address'] as String?,
-      profileImage: json['profile_image'] as String?,
-      userType: json['user_type'] as String,
+      id: json['id'] as int?,
+      name: json['name']?.toString() ?? 'Unknown',
+      email: json['email']?.toString() ?? '',
+      phone: json['phone_number']?.toString(),
+      address: json['address']?.toString(),
+      profileImage: json['profile_image']?.toString(),
+      userType: json['user_type']?.toString() ?? 'customer',
     );
   }
   
@@ -35,7 +45,7 @@ class User {
       if (id != null) 'id': id,
       'name': name,
       'email': email,
-      'phone': phone,
+      'phone_number': phone,
       'address': address,
       'profile_image': profileImage,
       'user_type': userType,
