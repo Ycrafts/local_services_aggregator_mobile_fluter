@@ -5,6 +5,8 @@ import '../../../core/models/user.dart';
 import '../../jobs/screens/post_job_screen.dart';
 import '../../../core/services/api_service.dart';
 import '../../notifications/screens/notifications_screen.dart';
+import '../../jobs/screens/job_details_screen.dart';
+import '../../jobs/screens/my_jobs_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -47,9 +49,18 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final apiService = context.read<ApiService>();
       final jobs = await apiService.getActiveJobs();
-      final activeJobs = jobs.where((job) =>
-        job['status'] == 'open' || job['status'] == 'in_progress'
-      ).toList();
+      
+      print('All jobs: $jobs'); // Debug log
+      
+      final activeJobs = jobs.where((job) {
+        final status = job['status']?.toString().toLowerCase();
+        print('Job ${job['id']} status: $status'); // Debug log
+        // Show all jobs except completed and cancelled
+        return status != 'completed' && status != 'cancelled';
+      }).toList();
+
+      print('Filtered active jobs: $activeJobs'); // Debug log
+
       if (mounted) {
         setState(() {
           _activeJobs = activeJobs;
@@ -89,31 +100,31 @@ class _HomeScreenState extends State<HomeScreen> {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
-        children: [
+                  children: [
           UserAccountsDrawerHeader(
             accountName: Text(_currentUser?.name ?? ''),
             accountEmail: Text(_currentUser?.email ?? ''),
             currentAccountPicture: CircleAvatar(
-              backgroundColor: Theme.of(context).primaryColor,
+                                  backgroundColor: Theme.of(context).primaryColor,
               child: _currentUser?.profileImage != null
-                  ? ClipOval(
-                      child: Image.network(
-                        _currentUser!.profileImage!,
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  : Text(
+                                      ? ClipOval(
+                                          child: Image.network(
+                                            _currentUser!.profileImage!,
+                                            width: 60,
+                                            height: 60,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        )
+                                      : Text(
                       _currentUser?.name[0].toUpperCase() ?? '',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        color: Colors.white,
-                      ),
-                    ),
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor,
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        ),
+                                        decoration: BoxDecoration(
+                                            color: Theme.of(context).primaryColor,
             ),
           ),
           ListTile(
@@ -127,8 +138,12 @@ class _HomeScreenState extends State<HomeScreen> {
             leading: const Icon(Icons.person),
             title: const Text('Profile'),
             onTap: () {
-              // Navigate to profile
-              Navigator.pop(context);
+              Navigator.pop(context); // Close drawer
+              if (_currentUser?.userType == 'customer') {
+                Navigator.pushNamed(context, '/customer-profile');
+              } else {
+                Navigator.pushNamed(context, '/provider-profile');
+              }
             },
           ),
           ListTile(
@@ -146,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Navigate to settings
               Navigator.pop(context);
             },
-          ),
+                                      ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.help),
@@ -161,9 +176,9 @@ class _HomeScreenState extends State<HomeScreen> {
             leading: const Icon(Icons.logout),
             title: const Text('Logout'),
             onTap: () => _handleLogout(context),
-          ),
-        ],
-      ),
+                                ),
+                              ],
+                            ),
     );
   }
 
@@ -171,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+                                children: [
           // Search Bar
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -184,9 +199,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 filled: true,
                 fillColor: Colors.grey[100],
-              ),
-            ),
-          ),
+                        ),
+                      ),
+                    ),
 
           // Quick Actions
           Padding(
@@ -194,61 +209,68 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Quick Actions',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  children: [
-                    _buildActionCard(
-                      'Post a Job',
-                      Icons.add_circle_outline,
-                      () async {
-                        final result = await Navigator.push(
+                      Text(
+                        'Quick Actions',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                        children: [
+                          _buildActionCard(
+                            'Post a Job',
+                            Icons.add_circle_outline,
+                            () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const PostJobScreen(),
+                                ),
+                              );
+                              if (result == true) {
+                                // Add a small delay to allow backend to process
+                                await Future.delayed(const Duration(seconds: 1));
+                                _loadActiveJobs(); // Refresh jobs after posting
+                              }
+                            },
+                          ),
+                          _buildActionCard(
+                            'My Jobs',
+                            Icons.work_outline,
+                            () {
+                        Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const PostJobScreen(),
+                            builder: (context) => const MyJobsScreen(),
                           ),
                         );
-                        if (result == true) {
-                          _loadActiveJobs(); // Refresh jobs after posting
-                        }
-                      },
-                    ),
-                    _buildActionCard(
-                      'My Jobs',
-                      Icons.work_outline,
-                      () {
-                        // Navigate to my jobs screen
-                      },
-                    ),
-                    _buildActionCard(
-                      'Notifications',
-                      Icons.notifications_outlined,
-                      () {
+                            },
+                          ),
+                          _buildActionCard(
+                            'Notifications',
+                            Icons.notifications_outlined,
+                            () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => const NotificationsScreen(),
                           ),
                         );
-                      },
-                    ),
-                    _buildActionCard(
-                      'Profile',
-                      Icons.person_outline,
-                      () {
-                        // Navigate to profile screen
-                      },
-                    ),
-                  ],
-                ),
+                            },
+                          ),
+                          _buildActionCard(
+                            'Profile',
+                            Icons.person_outline,
+                            () {
+                              Navigator.pushNamed(context, '/customer-profile');
+                            },
+                          ),
+                        ],
+                      ),
               ],
             ),
           ),
@@ -262,17 +284,32 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                      Text(
                       'Active Jobs',
-                      style: Theme.of(context).textTheme.titleLarge,
+                        style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.refresh),
-                      onPressed: _loadActiveJobs,
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.refresh),
+                          onPressed: _loadActiveJobs,
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MyJobsScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text('View All'),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-                const SizedBox(height: 16),
+                      ),
+                      const SizedBox(height: 16),
                 if (_isLoading)
                   const Center(child: CircularProgressIndicator())
                 else if (_activeJobs.isEmpty)
@@ -281,8 +318,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   )
                 else
                   ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
                     itemCount: _activeJobs.length,
                     itemBuilder: (context, index) {
                       final job = _activeJobs[index];
@@ -295,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           title: Text(job['job_type']?['name'] ?? 'Unknown Job Type'),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                        children: [
                               Text(job['description'] ?? 'No description'),
                               const SizedBox(height: 4),
                               Text(
@@ -308,17 +345,53 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                           trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                          onTap: () {
-                            // Navigate to job details
+                          onTap: () async {
+                            try {
+                              final apiService = context.read<ApiService>();
+                              // Show loading indicator
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Loading job details...'),
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                              
+                              // Fetch fresh job details
+                              final freshJob = await apiService.getJobDetails(job['id']);
+                              
+                              if (mounted) {
+                                // Navigate to job details and wait for result
+                                final result = await Navigator.push(
+                            context,
+                                  MaterialPageRoute(
+                                    builder: (context) => JobDetailsScreen(job: freshJob),
+                                  ),
+                                );
+                                
+                                // If job status was updated, refresh the active jobs list
+                                if (result == true) {
+                                  _loadActiveJobs();
+                                }
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error loading job details: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
                           },
                         ),
                       );
-                    },
-                  ),
-              ],
-            ),
+                            },
+                          ),
+                        ],
+                      ),
           ),
-        ],
+                    ],
       ),
     );
   }
@@ -356,8 +429,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     Icons.star,
                   ),
                 ),
-              ],
-            ),
+                  ],
+                ),
           ),
 
           // Available Jobs
@@ -464,8 +537,8 @@ class _HomeScreenState extends State<HomeScreen> {
               textAlign: TextAlign.center,
             ),
           ],
-        ),
-      ),
+              ),
+            ),
     );
   }
 

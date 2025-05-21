@@ -7,6 +7,10 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'core/services/customer_profile_service.dart';
+import 'core/widgets/profile_check_wrapper.dart';
+import 'features/profile/screens/customer_profile_screen.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +43,12 @@ class MyApp extends StatelessWidget {
             secureStorage: secureStorage,
           ),
         ),
+        Provider<CustomerProfileService>(
+          create: (context) => CustomerProfileService(
+            baseUrl: AppConfig.baseUrl,
+            secureStorage: secureStorage,
+          ),
+        ),
       ],
       child: MaterialApp(
         title: 'Local Services Aggregator',
@@ -46,11 +56,21 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.blue,
           visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
-        home: const SplashScreen(),
+        home: Consumer<AuthService>(
+          builder: (context, authService, _) {
+            if (authService.token == null) {
+              return const LoginScreen();
+            }
+            return ProfileCheckWrapper(
+              child: const HomeScreen(),
+            );
+          },
+        ),
         routes: {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/home': (context) => const HomeScreen(),
+          '/customer-profile': (context) => const CustomerProfileScreen(),
         },
       ),
     );

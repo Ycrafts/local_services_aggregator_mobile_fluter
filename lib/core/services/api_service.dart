@@ -53,13 +53,22 @@ class ApiService {
 
   Future<List<dynamic>> getActiveJobs() async {
     final response = await _client.get(
-      Uri.parse('$baseUrl/jobs'),
+      Uri.parse('$baseUrl/jobs?limit=5'),
       headers: await _getHeaders(),
     );
 
+    print('Raw response: ${response.body}'); // Debug log
+
     if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body)['data'];
-      return data;
+      final responseData = json.decode(response.body);
+      print('Decoded response: $responseData'); // Debug log
+      
+      if (responseData is Map && responseData.containsKey('data')) {
+        final data = responseData['data'];
+        print('Data from response: $data'); // Debug log
+        return data;
+      }
+      return responseData;
     } else {
       throw Exception('Failed to load active jobs: ${response.body}');
     }
@@ -84,6 +93,122 @@ class ApiService {
     );
     if (response.statusCode != 200) {
       throw Exception('Failed to mark notification as read: ${response.body}');
+    }
+  }
+
+  Future<void> updateJobStatus(int jobId, String status) async {
+    final response = await _client.put(
+      Uri.parse('$baseUrl/jobs/$jobId'),
+      headers: await _getHeaders(),
+      body: json.encode({
+        'status': status,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update job status: ${response.body}');
+    }
+  }
+
+  Future<void> completeJob(int jobId) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/jobs/$jobId/complete'),
+      headers: await _getHeaders(),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to complete job: ${response.body}');
+    }
+  }
+
+  Future<void> cancelJob(int jobId) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/jobs/$jobId/cancel'),
+      headers: await _getHeaders(),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to cancel job: ${response.body}');
+    }
+  }
+
+  Future<List<dynamic>> getJobProviderRequests(int jobId) async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$baseUrl/jobs/$jobId/interested-providers'),
+        headers: await _getHeaders(),
+      );
+
+      print('Raw response: ${response.body}'); // Debug log
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        print('Decoded response: $responseData'); // Debug log
+
+        // Check if responseData is a List
+        if (responseData is List) {
+          return responseData;
+        }
+        // Check if responseData is a Map with 'data' key
+        else if (responseData is Map && responseData.containsKey('data')) {
+          final data = responseData['data'];
+          if (data is List) {
+            return data;
+          }
+        }
+        // If we get here, return empty list
+        return [];
+      } else {
+        throw Exception('Failed to load provider requests: ${response.body}');
+      }
+    } catch (e) {
+      print('Error in getJobProviderRequests: $e'); // Debug log
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getJobDetails(int jobId) async {
+    final response = await _client.get(
+      Uri.parse('$baseUrl/jobs/$jobId'),
+      headers: await _getHeaders(),
+    );
+
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      if (responseData['data'] != null) {
+        return responseData['data'];
+      }
+      return responseData;
+    } else {
+      throw Exception('Failed to load job details: ${response.body}');
+    }
+  }
+
+  Future<void> acceptProvider(int jobId, int providerId) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/jobs/$jobId/select-provider'),
+      headers: await _getHeaders(),
+      body: json.encode({
+        'provider_profile_id': providerId,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to accept provider: ${response.body}');
+    }
+  }
+
+  Future<void> declineProvider(int jobId, int providerId) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/jobs/$jobId/decline-provider'),
+      headers: await _getHeaders(),
+      body: json.encode({
+        'provider_profile_id': providerId,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to decline provider: ${response.body}');
     }
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/services/api_service.dart';
 import 'package:intl/intl.dart';
+import '../../jobs/screens/job_details_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({Key? key}) : super(key: key);
@@ -63,6 +64,52 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  void _handleNotificationTap(Map<String, dynamic> notification) async {
+    // Check if notification has job_id
+    if (notification['job_id'] != null) {
+      try {
+        final apiService = context.read<ApiService>();
+        // Show loading indicator
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Loading job details...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+        
+        // Fetch the job details using the job_id
+        final job = await apiService.getJobDetails(notification['job_id']);
+        
+        if (mounted) {
+          // Navigate to job details screen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => JobDetailsScreen(job: job),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error loading job details: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } else {
+      // Show message for notifications without job_id
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This notification is not linked to any job'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,6 +141,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 tooltip: 'Mark as read',
                                 onPressed: () => _markAsRead(notification['id']),
                               ),
+                        onTap: () => _handleNotificationTap(notification),
                       );
                     },
                   ),

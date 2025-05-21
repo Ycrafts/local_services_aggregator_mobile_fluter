@@ -10,6 +10,8 @@ class AuthService extends ChangeNotifier {
   final ApiClient _apiClient;
   final FlutterSecureStorage _secureStorage;
   bool _isInitialized = false;
+  String? _token;
+  bool _isProfileComplete = false;
   
   AuthService({
     ApiClient? apiClient,
@@ -28,7 +30,25 @@ class AuthService extends ChangeNotifier {
     if (!_isInitialized) {
       try {
         await _apiClient.initializeSecureStorage();
+        // Load token from storage
+        final token = await _secureStorage.read(key: AppConfig.tokenKey);
+        if (token != null) {
+          _token = token;
+          // Also check if user has a profile
+          try {
+            final user = await getCurrentUser();
+            if (user != null) {
+              // If user exists, check if they have a profile
+              final response = await _apiClient.get('/customer-profile');
+              _isProfileComplete = response.data != null && response.data['profile'] != null;
+            }
+          } catch (e) {
+            print('Error checking profile status: $e');
+            _isProfileComplete = false;
+          }
+        }
         _isInitialized = true;
+        notifyListeners();
       } catch (e) {
         print('Secure storage initialization failed: $e');
         _isInitialized = true;
@@ -162,5 +182,13 @@ class AuthService extends ChangeNotifier {
       print('Auth check error: $e');
       return false;
     }
+  }
+
+  String? get token => _token;
+  bool get isProfileComplete => _isProfileComplete;
+
+  void setProfileComplete(bool value) {
+    _isProfileComplete = value;
+    notifyListeners();
   }
 } 
