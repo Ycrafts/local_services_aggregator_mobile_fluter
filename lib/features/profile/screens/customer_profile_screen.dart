@@ -94,20 +94,32 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF1E1E1E),
       appBar: AppBar(
-        title: const Text('Customer Profile'),
+        backgroundColor: const Color(0xFF2D2D2D),
         elevation: 0,
+        title: const Text(
+          'Customer Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3A7D44)),
+              ),
+            )
           : Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Theme.of(context).primaryColor.withOpacity(0.1),
-                    Colors.white,
+                    const Color(0xFF1E1E1E),
+                    const Color(0xFF2D2D2D),
                   ],
                 ),
               ),
@@ -123,19 +135,24 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                         Center(
                           child: Column(
                             children: [
-                              CircleAvatar(
-                                radius: 50,
-                                backgroundColor: Theme.of(context).primaryColor,
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF3A7D44).withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
                                 child: const Icon(
                                   Icons.person,
                                   size: 50,
-                                  color: Colors.white,
+                                  color: Color(0xFF3A7D44),
                                 ),
                               ),
                               const SizedBox(height: 16),
                               Text(
                                 _profile == null ? 'Create Your Profile' : 'Update Your Profile',
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -144,8 +161,9 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                                 _profile == null 
                                     ? 'Please fill in your details below'
                                     : 'Update your information as needed',
-                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: Colors.grey[600],
+                                style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 16,
                                 ),
                               ),
                             ],
@@ -155,32 +173,38 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
 
                         // Address Field
                         Card(
-                          elevation: 2,
+                          elevation: 4,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(15),
                           ),
+                          color: const Color(0xFF2D2D2D),
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                const Text(
                                   'Address',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 TextFormField(
                                   controller: _addressController,
+                                  style: const TextStyle(color: Colors.white),
                                   decoration: InputDecoration(
                                     hintText: 'Enter your address',
-                                    prefixIcon: const Icon(Icons.home),
+                                    hintStyle: TextStyle(color: Colors.grey[400]),
+                                    prefixIcon: const Icon(Icons.home, color: Color(0xFF3A7D44)),
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
                                     ),
                                     filled: true,
-                                    fillColor: Colors.grey[50],
+                                    fillColor: Colors.grey[900],
                                   ),
                                   maxLines: 2,
                                   validator: (value) {
@@ -198,32 +222,38 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
 
                         // Additional Information Field
                         Card(
-                          elevation: 2,
+                          elevation: 4,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(15),
                           ),
+                          color: const Color(0xFF2D2D2D),
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                const Text(
                                   'Additional Information',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 TextFormField(
                                   controller: _additionalInfoController,
+                                  style: const TextStyle(color: Colors.white),
                                   decoration: InputDecoration(
                                     hintText: 'Enter any additional information',
-                                    prefixIcon: const Icon(Icons.info),
+                                    hintStyle: TextStyle(color: Colors.grey[400]),
+                                    prefixIcon: const Icon(Icons.info, color: Color(0xFF3A7D44)),
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
                                     ),
                                     filled: true,
-                                    fillColor: Colors.grey[50],
+                                    fillColor: Colors.grey[900],
                                   ),
                                   maxLines: 3,
                                 ),
@@ -240,9 +270,12 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _saveProfile,
                             style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3A7D44),
+                              foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(12),
                               ),
+                              elevation: 4,
                             ),
                             child: Text(
                               _profile == null ? 'Create Profile' : 'Update Profile',

@@ -6,7 +6,7 @@ import 'dart:async';
 class JobDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> job;
 
-  const JobDetailsScreen({Key? key, required this.job}) : super(key: key);
+  const JobDetailsScreen({super.key, required this.job});
 
   @override
   State<JobDetailsScreen> createState() => _JobDetailsScreenState();
@@ -106,56 +106,16 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     setState(() => _isLoading = true);
     try {
       final apiService = context.read<ApiService>();
-      if (status == 'completed') {
-        // Check if job is in progress before allowing completion
-        if (widget.job['status']?.toString().toLowerCase() != 'in_progress') {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Cannot complete job: Work must be in progress first'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-            setState(() => _isLoading = false);
-            return;
-          }
-        }
-        try {
-          await apiService.completeJob(widget.job['id']);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Job marked as completed successfully'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            Navigator.pop(context, true); // Return true to indicate status was updated
-          }
-        } catch (e) {
-          if (e.toString().contains('Provider has not marked this job as done yet')) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Cannot complete job: Provider must mark the job as done first'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-          } else {
-            rethrow;
-          }
-        }
-      } else if (status == 'cancelled') {
-        await apiService.cancelJob(widget.job['id']);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Job cancelled successfully'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          Navigator.pop(context, true); // Return true to indicate status was updated
-        }
+      await apiService.updateJobStatus(widget.job['id'], status);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Job ${status == 'cancelled' ? 'cancelled' : 'updated'} successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context, true); // Return true to indicate status was updated
       }
     } catch (e) {
       if (mounted) {
@@ -225,12 +185,48 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     }
   }
 
+  Future<void> _markAsDone() async {
+    setState(() => _isLoading = true);
+    try {
+      final apiService = context.read<ApiService>();
+      await apiService.markJobAsDone(widget.job['id']);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Job marked as done successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context, true); // Return true to indicate job was marked as done
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error marking job as done: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Widget _buildProviderRequestCard(Map<String, dynamic> request) {
     final providerProfile = request['provider_profile'];
     final user = providerProfile['user'];
     
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      color: const Color(0xFF2D2D2D),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -238,14 +234,19 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  child: Text(
-                    user['name'][0].toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3A7D44).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    color: Color(0xFF3A7D44),
+                    size: 24,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,10 +254,12 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                       Text(
                         user['name'],
                         style: const TextStyle(
+                          color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
                           const Icon(Icons.star, color: Colors.amber, size: 16),
@@ -264,7 +267,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                           Text(
                             providerProfile['rating'] ?? '0',
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: Colors.grey[400],
                               fontSize: 14,
                             ),
                           ),
@@ -286,8 +289,11 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.person),
-                  label: const Text('View Profile'),
+                  icon: const Icon(Icons.person, color: Color(0xFF3A7D44)),
+                  label: const Text(
+                    'View Profile',
+                    style: TextStyle(color: Color(0xFF3A7D44)),
+                  ),
                 ),
               ],
             ),
@@ -299,11 +305,22 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                 children: [
                   TextButton(
                     onPressed: () => _handleProviderAction(providerProfile['id'], false),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red,
+                    ),
                     child: const Text('Decline'),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () => _handleProviderAction(providerProfile['id'], true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3A7D44),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
                     child: const Text('Accept'),
                   ),
                 ],
@@ -383,9 +400,16 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       child: Column(
         children: [
           if (status == 'open')
-            const Padding(
-              padding: EdgeInsets.only(bottom: 16.0),
-              child: Text(
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: Colors.orange.withOpacity(0.3),
+                ),
+              ),
+              child: const Text(
                 'Note: You can only mark a job as complete after work has started',
                 style: TextStyle(
                   color: Colors.orange,
@@ -395,9 +419,16 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
               ),
             ),
           if (status == 'assigned')
-            const Padding(
-              padding: EdgeInsets.only(bottom: 16.0),
-              child: Text(
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: Colors.blue.withOpacity(0.3),
+                ),
+              ),
+              child: const Text(
                 'Provider has been assigned. Waiting for work to start.',
                 style: TextStyle(
                   color: Colors.blue,
@@ -406,36 +437,110 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                 textAlign: TextAlign.center,
               ),
             ),
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              ElevatedButton.icon(
-                onPressed: _isLoading ? null : () => _updateJobStatus('cancelled'),
-                icon: const Icon(Icons.cancel),
-                label: const Text('Cancel Job'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
+              if (status == 'open')
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : () async {
+                    setState(() => _isLoading = true);
+                    try {
+                      final apiService = context.read<ApiService>();
+                      await apiService.cancelJob(widget.job['id']);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Job cancelled successfully'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        Navigator.pop(context, true);
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error cancelling job: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isLoading = false);
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.cancel),
+                  label: const Text('Cancel Job'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
                 ),
-              ),
               if (status == 'assigned')
                 ElevatedButton.icon(
                   onPressed: _isLoading ? null : () => _updateJobStatus('in_progress'),
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Start Work'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: const Color(0xFF3A7D44),
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
                   ),
                 ),
               if (status == 'in_progress')
                 ElevatedButton.icon(
-                  onPressed: _isLoading ? null : () => _updateJobStatus('completed'),
+                  onPressed: _isLoading ? null : () async {
+                    setState(() => _isLoading = true);
+                    try {
+                      final apiService = context.read<ApiService>();
+                      await apiService.completeJob(widget.job['id']);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Job marked as completed successfully'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        Navigator.pop(context, true);
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        String errorMsg = 'Error completing job: $e';
+                        if (e.toString().contains('Provider has not marked this job as done yet')) {
+                          errorMsg = 'The provider must mark the job as done before you can complete it.';
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(errorMsg),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isLoading = false);
+                      }
+                    }
+                  },
                   icon: const Icon(Icons.check_circle),
                   label: const Text('Mark Complete'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: const Color(0xFF3A7D44),
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
                   ),
                 ),
             ],
@@ -457,86 +562,276 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final job = widget.job;
+    final jobType = job['job_type'];
+    final createdAt = DateTime.parse(job['created_at']).toLocal();
+    final assignedProvider = job['assigned_provider'];
+
     return Scaffold(
+      backgroundColor: const Color(0xFF1E1E1E),
       appBar: AppBar(
-        title: const Text('Job Details'),
+        backgroundColor: const Color(0xFF2D2D2D),
+        elevation: 0,
+        title: const Text(
+          'Job Details',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadProviderRequests,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  _getStatusIcon(widget.job['status']),
-                                  color: _getStatusColor(widget.job['status']),
-                                  size: 32,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Status: ${widget.job['status']?.toString().toUpperCase() ?? 'UNKNOWN'}',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: _getStatusColor(widget.job['status']),
-                                  ),
-                                ),
-                              ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF1E1E1E),
+              const Color(0xFF2D2D2D),
+            ],
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                color: const Color(0xFF2D2D2D),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF3A7D44).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Job Type: ${widget.job['job_type']?['name'] ?? 'Unknown'}',
-                              style: const TextStyle(fontSize: 16),
+                            child: const Icon(
+                              Icons.work,
+                              color: Color(0xFF3A7D44),
+                              size: 24,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Description: ${widget.job['description'] ?? 'No description'}',
-                              style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              jobType?['name'] ?? 'Unknown Job Type',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Estimated Cost: ${widget.job['estimated_cost']?.toString() ?? 'N/A'} Birr',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Posted: ${_formatDate(widget.job['created_at'])}',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Description',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                    // Show provider requests section if job is open
-                    if (widget.job['status']?.toString().toLowerCase() == 'open') ...[
-                      const Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Text(
-                          'Provider Requests',
+                      const SizedBox(height: 8),
+                      Text(
+                        job['description'] ?? 'No description provided',
+                        style: TextStyle(
+                          color: Colors.grey[300],
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Proposed Price',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${job['estimated_cost'] ?? '0.00'} Birr',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF3A7D44),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Date Posted',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${createdAt.day}/${createdAt.month}/${createdAt.year}',
+                        style: TextStyle(
+                          color: Colors.grey[300],
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Show assigned provider section if there is one
+              if (assignedProvider != null) ...[
+                const SizedBox(height: 24),
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  color: const Color(0xFF2D2D2D),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Assigned Provider',
                           style: TextStyle(
+                            color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                      _buildProviderRequests(),
-                    ],
-                    _buildActionButtons(),
-                  ],
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF3A7D44).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                color: Color(0xFF3A7D44),
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    assignedProvider['user']?['name'] ?? 'Unknown Provider',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.star, color: Colors.amber, size: 16),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        assignedProvider['rating'] ?? '0',
+                                        style: TextStyle(
+                                          color: Colors.grey[400],
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Skills',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          assignedProvider['skills'] ?? 'No skills listed',
+                          style: TextStyle(
+                            color: Colors.grey[300],
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Experience',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${assignedProvider['experience_years'] ?? 0} years',
+                          style: TextStyle(
+                            color: Colors.grey[300],
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              ],
+              // Show provider requests section if job is open
+              if (job['status']?.toString().toLowerCase() == 'open') ...[
+                const SizedBox(height: 24),
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  color: const Color(0xFF2D2D2D),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Provider Requests',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildProviderRequests(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              _buildActionButtons(),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -562,44 +857,65 @@ class ProviderProfileScreen extends StatelessWidget {
     final location = providerProfile['location']?.toString() ?? 'Location not specified';
 
     return Scaffold(
+      backgroundColor: const Color(0xFF1E1E1E),
       appBar: AppBar(
-        title: Text(name),
+        backgroundColor: const Color(0xFF2D2D2D),
+        elevation: 0,
+        title: Text(
+          name,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.blue.shade100,
-                child: Text(
-                  name.isNotEmpty ? name[0].toUpperCase() : '?',
-                  style: const TextStyle(
-                    fontSize: 40,
-                    color: Colors.blue,
-                    fontWeight: FontWeight.bold,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF1E1E1E),
+              const Color(0xFF2D2D2D),
+            ],
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3A7D44).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    size: 50,
+                    color: Color(0xFF3A7D44),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            _buildInfoSection('Contact Information', [
-              _buildInfoRow(Icons.phone, 'Phone', phone),
-              _buildInfoRow(Icons.location_on, 'Location', location),
-            ]),
-            const SizedBox(height: 16),
-            _buildInfoSection('Professional Details', [
-              _buildInfoRow(Icons.star, 'Rating', rating),
-              _buildInfoRow(Icons.work, 'Experience', '$experience years'),
-              _buildInfoRow(Icons.build, 'Skills', skills),
-            ]),
-            const SizedBox(height: 16),
-            _buildInfoSection('About', [
-              _buildInfoRow(Icons.description, 'Bio', bio),
-            ]),
-          ],
+              const SizedBox(height: 24),
+              _buildInfoSection('Contact Information', [
+                _buildInfoRow(Icons.phone, 'Phone', phone),
+                _buildInfoRow(Icons.location_on, 'Location', location),
+              ]),
+              const SizedBox(height: 16),
+              _buildInfoSection('Professional Details', [
+                _buildInfoRow(Icons.star, 'Rating', rating),
+                _buildInfoRow(Icons.work, 'Experience', '$experience years'),
+                _buildInfoRow(Icons.build, 'Skills', skills),
+              ]),
+              const SizedBox(height: 16),
+              _buildInfoSection('About', [
+                _buildInfoRow(Icons.description, 'Bio', bio),
+              ]),
+            ],
+          ),
         ),
       ),
     );
@@ -612,12 +928,18 @@ class ProviderProfileScreen extends StatelessWidget {
         Text(
           title,
           style: const TextStyle(
+            color: Colors.white,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 8),
         Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          color: const Color(0xFF2D2D2D),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -635,7 +957,7 @@ class ProviderProfileScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: Colors.blue),
+          Icon(icon, size: 20, color: const Color(0xFF3A7D44)),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -649,7 +971,12 @@ class ProviderProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(value),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                  ),
+                ),
               ],
             ),
           ),

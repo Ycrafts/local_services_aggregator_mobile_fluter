@@ -65,6 +65,16 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       appBar: AppBar(
         title: const Text('Complete Your Profile'),
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () async {
+            final authService = context.read<AuthService>();
+            await authService.logout();
+            if (mounted) {
+              Navigator.of(context).pushReplacementNamed('/login');
+            }
+          },
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(

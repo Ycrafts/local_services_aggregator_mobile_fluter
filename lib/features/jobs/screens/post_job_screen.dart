@@ -36,16 +36,13 @@ class _PostJobScreenState extends State<PostJobScreen> {
   Future<void> _loadJobTypes() async {
     try {
       final apiService = context.read<ApiService>();
-      print('Fetching job types...'); // Debug print
       final jobTypes = await apiService.getJobTypes();
-      print('Loaded job types: $jobTypes'); // Debug print
       if (mounted) {
         setState(() {
           _jobTypes = jobTypes;
         });
       }
     } catch (e) {
-      print('Error loading job types: $e'); // Debug print
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading job types: $e')),
@@ -104,7 +101,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Job posted successfully')),
         );
-        Navigator.pop(context, true); // Return true to indicate success
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
@@ -124,114 +121,208 @@ class _PostJobScreenState extends State<PostJobScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF1E1E1E),
       appBar: AppBar(
-        title: const Text('Post a Job'),
+        backgroundColor: const Color(0xFF2D2D2D),
+        elevation: 0,
+        title: const Text(
+          'Post a Job',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_openJobsCount >= 5)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade100,
-                        borderRadius: BorderRadius.circular(8),
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3A7D44)),
+              ),
+            )
+          : Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xFF1E1E1E),
+                    const Color(0xFF2D2D2D),
+                  ],
+                ),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_openJobsCount >= 5)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                            color: Colors.red.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning, color: Colors.red[300]),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'You have reached the limit of 5 open jobs. Please complete or cancel some jobs before posting a new one.',
+                                style: TextStyle(color: Colors.red[300]),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Row(
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Icon(Icons.warning, color: Colors.red.shade700),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'You have reached the limit of 5 open jobs. Please complete or cancel some jobs before posting a new one.',
-                              style: TextStyle(color: Colors.red.shade700),
+                          // Job Type Dropdown
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2D2D2D),
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: Colors.grey.withOpacity(0.2),
+                              ),
+                            ),
+                            child: DropdownButtonFormField<JobType>(
+                              value: _selectedJobType,
+                              dropdownColor: const Color(0xFF2D2D2D),
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                labelText: 'Job Type',
+                                labelStyle: TextStyle(color: Colors.grey[400]),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                              ),
+                              items: _jobTypes.map((jobType) {
+                                return DropdownMenuItem(
+                                  value: jobType,
+                                  child: Text(
+                                    '${jobType.name} (Baseline Price: ${jobType.baselinePrice.toStringAsFixed(2)} Birr)',
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (JobType? value) {
+                                setState(() {
+                                  _selectedJobType = value;
+                                  if (value != null) {
+                                    _priceController.text = value.baselinePrice.toString();
+                                  }
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Please select a job type';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Description Field
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2D2D2D),
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: Colors.grey.withOpacity(0.2),
+                              ),
+                            ),
+                            child: TextFormField(
+                              controller: _descriptionController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                labelText: 'Description',
+                                labelStyle: TextStyle(color: Colors.grey[400]),
+                                hintText: 'Describe the job in detail',
+                                hintStyle: TextStyle(color: Colors.grey[600]),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.all(16),
+                              ),
+                              maxLines: 4,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter a description';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Proposed Price Field
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2D2D2D),
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: Colors.grey.withOpacity(0.2),
+                              ),
+                            ),
+                            child: TextField(
+                              controller: _priceController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                labelText: 'Proposed Price',
+                                labelStyle: TextStyle(color: Colors.grey[400]),
+                                hintText: 'Least amount: ${_selectedJobType?.baselinePrice.toStringAsFixed(2)} Birr',
+                                hintStyle: TextStyle(color: Colors.grey[600]),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.all(16),
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Submit Button
+                          ElevatedButton(
+                            onPressed: _submitJob,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3A7D44),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              elevation: 4,
+                            ),
+                            child: const Text(
+                              'Post Job',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Job Type Dropdown
-                        DropdownButtonFormField<JobType>(
-                          value: _selectedJobType,
-                          decoration: const InputDecoration(
-                            labelText: 'Job Type',
-                            border: OutlineInputBorder(),
-                          ),
-                          items: _jobTypes.map((jobType) {
-                            return DropdownMenuItem(
-                              value: jobType,
-                              child: Text('${jobType.name} (Baseline Price: ${jobType.baselinePrice.toStringAsFixed(2)} Birr)'),
-                            );
-                          }).toList(),
-                          onChanged: (JobType? value) {
-                            setState(() {
-                              _selectedJobType = value;
-                              if (value != null) {
-                                _priceController.text = value.baselinePrice.toString();
-                              }
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null) {
-                              return 'Please select a job type';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Description Field
-                        TextFormField(
-                          controller: _descriptionController,
-                          decoration: const InputDecoration(
-                            labelText: 'Description',
-                            border: OutlineInputBorder(),
-                            hintText: 'Describe the job in detail',
-                          ),
-                          maxLines: 4,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter a description';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Proposed Price Field
-                        TextField(
-                          controller: _priceController,
-                          decoration: InputDecoration(
-                            labelText: 'Proposed Price',
-                            hintText: 'Least amount: ${_selectedJobType?.baselinePrice.toStringAsFixed(2)} Birr',
-                            border: const OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.number,
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Submit Button
-                        ElevatedButton(
-                          onPressed: _submitJob,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: const Text('Post Job'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
     );

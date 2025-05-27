@@ -113,39 +113,139 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _notifications.isEmpty
-              ? const Center(child: Text('No notifications found.'))
-              : RefreshIndicator(
-                  onRefresh: _loadNotifications,
-                  child: ListView.builder(
-                    itemCount: _notifications.length,
-                    itemBuilder: (context, index) {
-                      final notification = _notifications[index];
-                      final isRead = notification['is_read'] == true;
-                      return ListTile(
-                        leading: Icon(
-                          isRead ? Icons.notifications_none : Icons.notifications,
-                          color: isRead ? Colors.grey : Theme.of(context).primaryColor,
-                        ),
-                        title: Text(notification['message'] ?? 'No message'),
-                        subtitle: Text(
-                          _formatDate(notification['created_at']),
-                        ),
-                        trailing: isRead
-                            ? null
-                            : IconButton(
-                                icon: const Icon(Icons.mark_email_read),
-                                tooltip: 'Mark as read',
-                                onPressed: () => _markAsRead(notification['id']),
-                              ),
-                        onTap: () => _handleNotificationTap(notification),
-                      );
-                    },
-                  ),
+      backgroundColor: const Color(0xFF1E1E1E),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF2D2D2D),
+        elevation: 0,
+        title: const Text(
+          'Notifications',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadNotifications,
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF1E1E1E),
+              const Color(0xFF2D2D2D),
+            ],
+          ),
+        ),
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3A7D44)),
                 ),
+              )
+            : _notifications.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.notifications_none,
+                          size: 64,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No notifications found',
+                          style: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadNotifications,
+                    color: const Color(0xFF3A7D44),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _notifications.length,
+                      itemBuilder: (context, index) {
+                        final notification = _notifications[index];
+                        final isRead = notification['is_read'] == true;
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          color: const Color(0xFF2D2D2D),
+                          child: InkWell(
+                            onTap: () => _handleNotificationTap(notification),
+                            borderRadius: BorderRadius.circular(15),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: isRead
+                                          ? Colors.grey.withOpacity(0.1)
+                                          : const Color(0xFF3A7D44).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(
+                                      isRead ? Icons.notifications_none : Icons.notifications,
+                                      color: isRead ? Colors.grey : const Color(0xFF3A7D44),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          notification['message'] ?? 'No message',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _formatDate(notification['created_at']),
+                                          style: TextStyle(
+                                            color: Colors.grey[400],
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (!isRead)
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.mark_email_read,
+                                        color: Color(0xFF3A7D44),
+                                      ),
+                                      tooltip: 'Mark as read',
+                                      onPressed: () => _markAsRead(notification['id']),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+      ),
     );
   }
 } 

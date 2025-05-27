@@ -80,117 +80,211 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF1E1E1E),
       appBar: AppBar(
-        title: const Text('My Jobs'),
+        backgroundColor: const Color(0xFF2D2D2D),
+        elevation: 0,
+        title: const Text(
+          'My Jobs',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadJobs,
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Status Filter
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                FilterChip(
-                  label: const Text('All'),
-                  selected: _selectedStatus == null,
-                  onSelected: (selected) {
-                    setState(() => _selectedStatus = null);
-                  },
-                ),
-                const SizedBox(width: 8),
-                ...['open', 'in_progress', 'completed', 'cancelled'].map((status) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: FilterChip(
-                      label: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _getStatusIcon(status),
-                            size: 16,
-                            color: _getStatusColor(status),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(status.toUpperCase()),
-                        ],
-                      ),
-                      selected: _selectedStatus == status,
-                      onSelected: (selected) {
-                        setState(() => _selectedStatus = selected ? status : null);
-                      },
-                    ),
-                  );
-                }).toList(),
-              ],
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF1E1E1E),
+              const Color(0xFF2D2D2D),
+            ],
           ),
+        ),
+        child: Column(
+          children: [
+            // Status Filter
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  FilterChip(
+                    label: const Text(
+                      'All',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    selected: _selectedStatus == null,
+                    selectedColor: const Color(0xFF3A7D44),
+                    checkmarkColor: Colors.white,
+                    backgroundColor: const Color(0xFF2D2D2D),
+                    onSelected: (selected) {
+                      setState(() => _selectedStatus = null);
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  ...['open', 'in_progress', 'completed', 'cancelled'].map((status) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: FilterChip(
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _getStatusIcon(status),
+                              size: 16,
+                              color: _getStatusColor(status),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              status.toUpperCase(),
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
+                        selected: _selectedStatus == status,
+                        selectedColor: const Color(0xFF3A7D44),
+                        checkmarkColor: Colors.white,
+                        backgroundColor: const Color(0xFF2D2D2D),
+                        onSelected: (selected) {
+                          setState(() => _selectedStatus = selected ? status : null);
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
 
-          // Jobs List
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredJobs.isEmpty
-                    ? const Center(child: Text('No jobs found'))
-                    : RefreshIndicator(
-                        onRefresh: _loadJobs,
-                        child: ListView.builder(
-                          itemCount: _filteredJobs.length,
-                          itemBuilder: (context, index) {
-                            final job = _filteredJobs[index];
-                            return Card(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 16.0,
-                                vertical: 8.0,
-                              ),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: _getStatusColor(job['status']),
-                                  child: Icon(
-                                    _getStatusIcon(job['status']),
-                                    color: Colors.white,
+            // Jobs List
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3A7D44)),
+                      ),
+                    )
+                  : _filteredJobs.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No jobs found',
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 16,
+                            ),
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadJobs,
+                          color: const Color(0xFF3A7D44),
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(16.0),
+                            itemCount: _filteredJobs.length,
+                            itemBuilder: (context, index) {
+                              final job = _filteredJobs[index];
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                elevation: 4,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                color: const Color(0xFF2D2D2D),
+                                child: InkWell(
+                                  onTap: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => JobDetailsScreen(job: job),
+                                      ),
+                                    );
+                                    if (result == true) {
+                                      _loadJobs();
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(15),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: _getStatusColor(job['status']).withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Icon(
+                                                _getStatusIcon(job['status']),
+                                                color: _getStatusColor(job['status']),
+                                                size: 24,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                job['job_type']?['name'] ?? 'Unknown Job Type',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 6,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: _getStatusColor(job['status']).withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(20),
+                                              ),
+                                              child: Text(
+                                                job['status']?.toString().toUpperCase() ?? 'UNKNOWN',
+                                                style: TextStyle(
+                                                  color: _getStatusColor(job['status']),
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ),
+                                            Text(
+                                              '${job['estimated_cost'] ?? '0.00'} Birr',
+                                              style: const TextStyle(
+                                                color: Color(0xFF3A7D44),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                                title: Text(
-                                  job['job_type']?['name'] ?? 'Unknown Job Type',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(job['description'] ?? 'No description'),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Status: ${job['status']?.toString().toUpperCase() ?? 'UNKNOWN'}',
-                                      style: TextStyle(
-                                        color: _getStatusColor(job['status']),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => JobDetailsScreen(job: job),
-                                    ),
-                                  );
-                                },
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
-                      ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

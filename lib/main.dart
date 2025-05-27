@@ -10,12 +10,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'core/services/customer_profile_service.dart';
 import 'core/widgets/profile_check_wrapper.dart';
 import 'features/profile/screens/customer_profile_screen.dart';
+import 'features/provider/screens/provider_profile_setup_screen.dart';
+import 'features/provider/screens/provider_profile_screen.dart';
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize secure storage with platform-specific options
   const secureStorage = FlutterSecureStorage(
     aOptions: AndroidOptions(
       encryptedSharedPreferences: true,
@@ -69,8 +70,12 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
-          '/home': (context) => const HomeScreen(),
+          '/home': (context) => ProfileCheckWrapper(
+                child: const HomeScreen(),
+              ),
           '/customer-profile': (context) => const CustomerProfileScreen(),
+          '/provider-profile-setup': (context) => const ProviderProfileSetupScreen(),
+          '/provider-profile': (context) => const ProviderProfileScreen(),
         },
       ),
     );
@@ -99,8 +104,14 @@ class _SplashScreenState extends State<SplashScreen> {
       if (!mounted) return;
 
       if (isAuthenticated) {
-        // User is authenticated, navigate to home
-        Navigator.of(context).pushReplacementNamed('/home');
+        // User is authenticated, navigate to home through ProfileCheckWrapper
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => ProfileCheckWrapper(
+              child: const HomeScreen(),
+            ),
+          ),
+        );
       } else {
         // User is not authenticated, navigate to login
         Navigator.of(context).pushReplacementNamed('/login');

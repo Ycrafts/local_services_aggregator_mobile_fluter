@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/customer_profile_service.dart';
+import '../../features/profile/screens/customer_profile_screen.dart';
 import '../../features/auth/screens/profile_setup_screen.dart';
 
 class ProfileCheckWrapper extends StatefulWidget {
@@ -19,6 +20,7 @@ class ProfileCheckWrapper extends StatefulWidget {
 class _ProfileCheckWrapperState extends State<ProfileCheckWrapper> {
   bool _isLoading = true;
   bool _hasProfile = false;
+  String? _userType;
 
   @override
   void initState() {
@@ -30,8 +32,9 @@ class _ProfileCheckWrapperState extends State<ProfileCheckWrapper> {
     try {
       final authService = context.read<AuthService>();
       final profileService = context.read<CustomerProfileService>();
-
-      if (authService.token != null) {
+      final user = await authService.getCurrentUser();
+      _userType = user?.userType;
+      if (authService.token != null && _userType == 'customer') {
         try {
           await profileService.getProfile();
           if (mounted) {
@@ -52,6 +55,7 @@ class _ProfileCheckWrapperState extends State<ProfileCheckWrapper> {
       } else {
         if (mounted) {
           setState(() {
+            _hasProfile = true; // Providers or not logged in, allow through
             _isLoading = false;
           });
         }
@@ -75,13 +79,10 @@ class _ProfileCheckWrapperState extends State<ProfileCheckWrapper> {
       );
     }
 
-    final authService = context.read<AuthService>();
-    
-    // If user is logged in but has no profile, show profile setup
-    if (authService.token != null && !_hasProfile) {
+    // If customer and no profile, show profile setup
+    if (_userType == 'customer' && !_hasProfile) {
       return const ProfileSetupScreen();
     }
-    
     // Otherwise show the intended screen
     return widget.child;
   }
