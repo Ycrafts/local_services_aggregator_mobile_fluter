@@ -17,6 +17,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   List<dynamic> _providerRequests = [];
   bool _isLoadingRequests = false;
   Timer? _refreshTimer;
+  bool _hasRated = false;
 
   @override
   void initState() {
@@ -31,6 +32,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         }
       });
     }
+    // Check if job has been rated
+    _hasRated = widget.job['rating'] != null;
   }
 
   @override
@@ -216,6 +219,109 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     }
   }
 
+  Future<void> _showRatingDialog() async {
+    double rating = 0;
+    final commentController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: const Color(0xFF2D2D2D),
+          title: const Text(
+            'Rate Provider',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  return IconButton(
+                    icon: Icon(
+                      index < rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 32,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        rating = index + 1;
+                      });
+                    },
+                  );
+                }),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: commentController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: 'Add a comment (optional)',
+                  hintStyle: TextStyle(color: Colors.grey),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFF3A7D44)),
+                  ),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: rating == 0
+                  ? null
+                  : () async {
+                      try {
+                        final apiService = context.read<ApiService>();
+                        await apiService.submitRating(
+                          widget.job['id'],
+                          rating,
+                          commentController.text.isEmpty ? null : commentController.text,
+                        );
+                        if (mounted) {
+                          setState(() => _hasRated = true);
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Rating submitted successfully'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error submitting rating: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3A7D44),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildProviderRequestCard(Map<String, dynamic> request) {
     final providerProfile = request['provider_profile'];
     final user = providerProfile['user'];
@@ -392,6 +498,24 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     
     // Don't show buttons if job is already completed or cancelled
     if (status == 'completed' || status == 'cancelled') {
+      if (status == 'completed' && !_hasRated) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ElevatedButton.icon(
+            onPressed: _showRatingDialog,
+            icon: const Icon(Icons.star),
+            label: const Text('Rate Provider'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3A7D44),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+          ),
+        );
+      }
       return const SizedBox.shrink();
     }
 

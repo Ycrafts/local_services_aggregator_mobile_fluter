@@ -1,6 +1,6 @@
 class AppConfig {
   // Replace 192.168.1.100 with your actual local IP address
-  static const String baseUrl = 'http://192.168.100.41:8000/api';
+  static const String baseUrl = 'http://192.168.0.17:8000/api';
   
   // Endpoints
   static const String login = '/auth/login';

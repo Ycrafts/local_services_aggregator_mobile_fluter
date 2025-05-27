@@ -410,4 +410,25 @@ class ApiService {
       rethrow;
     }
   }
+
+  Future<void> submitRating(int jobId, double rating, String? comment) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl/jobs/$jobId/rate-provider'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'rating': rating.toInt(),
+          'comment': comment,
+        }),
+      );
+
+      if (response.statusCode != 201) {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to submit rating');
+      }
+    } catch (e) {
+      print('Error submitting rating: $e');
+      rethrow;
+    }
+  }
 } 

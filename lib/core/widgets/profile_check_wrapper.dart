@@ -72,9 +72,24 @@ class _ProfileCheckWrapperState extends State<ProfileCheckWrapper> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
+      return Scaffold(
+        backgroundColor: const Color(0xFF1E1E1E),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                const Color(0xFF1E1E1E),
+                const Color(0xFF2D2D2D),
+              ],
+            ),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3A7D44)),
+            ),
+          ),
         ),
       );
     }
